@@ -1,0 +1,11 @@
+LOAD test_8M_debug_ijok58ic.dat
+PANE
+OPER
+VISC 500000
+MACH 0.0
+PACC
+test_8M_debug_ijok58ic_polar.txt
+
+ASEQ -2 20 1
+PACC
+QUIT

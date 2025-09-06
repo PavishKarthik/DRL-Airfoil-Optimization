@@ -135,6 +135,86 @@ def plot(base_x,base_y,x_8M,y_8M):
     plt.legend()
     plt.show()
 
+# (Add this function to the end of airfoil_geometry.py)
+from scipy import interpolate # Make sure this is at the top of the file
+
+def generate_coords_from_cpts(x_cpts, y_cpts_upper, y_cpts_lower, num_points=200):
+    """
+    Generates a dense set of airfoil coordinates from B-spline control points.
+    This is the inverse of the fitting process.
+
+    Args:
+        x_cpts (np.ndarray): The x-coordinates of the control points.
+        y_cpts_upper (np.ndarray): The y-coordinates of the upper surface control points.
+        y_cpts_lower (np.ndarray): The y-coordinates of the lower surface control points.
+        num_points (int): The number of points to generate for the final coordinate file.
+
+    Returns:
+        tuple: (x_coords, y_coords) for the full airfoil in Selig format.
+    """
+    # Create B-spline objects from the control points
+    tck_upper = interpolate.splrep(x_cpts, y_cpts_upper, k=3, s=0)
+    tck_lower = interpolate.splrep(x_cpts, y_cpts_lower, k=3, s=0)
+
+    # Evaluate the splines to get a dense set of points
+    x_fine = np.linspace(np.min(x_cpts), np.max(x_cpts), num_points // 2)
+    y_upper_fine = interpolate.splev(x_fine, tck_upper)
+    y_lower_fine = interpolate.splev(x_fine, tck_lower)
+
+    # Combine into the Selig format (TE -> Upper -> LE -> Lower -> TE)
+    x_coords = np.concatenate([np.flip(x_fine), x_fine[1:]])
+    y_coords = np.concatenate([np.flip(y_upper_fine), y_lower_fine[1:]])
+    
+    return x_coords, y_coords
+
+# (Add this to airfoil_geometry.py)
+def calculate_area(x_coords, y_coords):
+    """
+    Calculates the cross-sectional area of an airfoil using the Shoelace formula.
+    Assumes the coordinates form a simple (non-self-intersecting) polygon.
+
+    Args:
+        x_coords (np.ndarray): The x-coordinates of the airfoil.
+        y_coords (np.ndarray): The y-coordinates of the airfoil.
+
+    Returns:
+        float: The calculated area.
+    """
+    # The Shoelace formula requires the vertices to be ordered (which they are).
+    # It calculates the area of any simple polygon.
+    area = 0.5 * np.abs(np.dot(x_coords, np.roll(y_coords, 1)) - np.dot(y_coords, np.roll(x_coords, 1)))
+    return area
+
+# (Add this to airfoil_geometry.py)
+def is_geometry_valid(x_coords, y_coords):
+    """
+    Checks if the airfoil geometry is valid (i.e., not self-intersecting).
+    The primary check is to ensure the upper surface is always above the lower surface.
+
+    Args:
+        x_coords (np.ndarray): The x-coordinates of the airfoil.
+        y_coords (np.ndarray): The y-coordinates of the airfoil.
+
+    Returns:
+        bool: True if the geometry is valid, False otherwise.
+    """
+    # Split into upper and lower surfaces
+    le_index = np.argmin(x_coords)
+    x_upper = np.flip(x_coords[:le_index + 1])
+    y_upper = np.flip(y_coords[:le_index + 1])
+    x_lower = x_coords[le_index:]
+    y_lower = y_coords[le_index:]
+
+    # We only need to check in the overlapping x-range (ignoring the unique LE point)
+    # Interpolate the lower surface y-values at the upper surface x-locations
+    y_lower_interp = np.interp(x_upper, x_lower, y_lower)
+
+    # The geometry is invalid if any upper surface point is below the lower surface
+    if np.any(y_upper < y_lower_interp):
+        return False
+    
+    return True
+
 if __name__ == '__main__':
     # 1. Get the baseline coordinates from your function
     base_x, base_y = genrate_n634021()

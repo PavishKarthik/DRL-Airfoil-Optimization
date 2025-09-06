@@ -133,7 +133,7 @@ if __name__ == '__main__':
     # --- CONFIGURATION ---
     AIRFOIL_DAT_FILE = 'peak_8M_airfoil.dat'
     CONTROL_POINTS_OUTPUT_FILE = 'baseline_control_points.npz'
-    NUM_CONTROL_POINTS = 12
+    NUM_CONTROL_POINTS = 8
 
     # --- MAIN EXECUTION ---
     # 1. Fit the B-spline to the data in the .dat file
