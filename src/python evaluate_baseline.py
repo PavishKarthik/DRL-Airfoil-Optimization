@@ -1,13 +1,14 @@
 import numpy as np
 
-# Import our custom modules
-from airfoil_geometry import generate_coords_from_cpts
+# --- MODIFICATION: Import the calculate_area function ---
+from airfoil_geometry import generate_coords_from_cpts, calculate_area
 from xfoil_wrapper import run_xfoil
 from reward_functions import calculate_reward
 
 def evaluate_baseline_performance(baseline_cpts_file='baseline_control_points.npz'):
     """
-    Loads the baseline airfoil, runs an XFOIL analysis, and calculates its reward score.
+    Loads the baseline airfoil, runs an XFOIL analysis, and calculates its reward score
+    using the updated, constraint-aware reward function.
     """
     print("--- Evaluating Baseline 8M Airfoil Performance ---")
 
@@ -22,12 +23,17 @@ def evaluate_baseline_performance(baseline_cpts_file='baseline_control_points.np
         print(f"Error: Could not find '{baseline_cpts_file}'. Please run the parameterization script first.")
         return
 
-    # 2. Generate the full airfoil coordinates from the baseline control points
+    # 2. Generate the full airfoil coordinates
     x_coords, y_coords = generate_coords_from_cpts(
         x_cpts, y_cpts_upper, y_cpts_lower
     )
 
-    # 3. Run the XFOIL simulation on the baseline airfoil
+    # --- ADDITION: Calculate the area of the baseline airfoil ---
+    baseline_area = calculate_area(x_coords, y_coords)
+    print(f"Calculated Baseline Area: {baseline_area:.8f}")
+    # --- END ADDITION ---
+
+    # 3. Run the XFOIL simulation
     print("Running XFOIL analysis on the baseline geometry...")
     polar = run_xfoil(
         x_coords, y_coords, 
@@ -40,7 +46,11 @@ def evaluate_baseline_performance(baseline_cpts_file='baseline_control_points.np
 
     # 4. Calculate the reward for the baseline airfoil
     if polar is not None:
-        baseline_reward = calculate_reward(polar)
+        # --- MODIFICATION: Pass the required area arguments to the reward function ---
+        # For the baseline, the "new_area" and "baseline_area" are the same.
+        baseline_reward = calculate_reward(polar, new_area=baseline_area, baseline_area=baseline_area)
+        # --- END MODIFICATION ---
+
         print("\n--- Baseline Performance Results ---")
         print(f"Baseline Reward Score: {baseline_reward:.4f}")
         print("\nBaseline Polar Data:")

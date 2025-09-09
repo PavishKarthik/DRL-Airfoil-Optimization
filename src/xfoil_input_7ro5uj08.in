@@ -1,0 +1,12 @@
+LOAD drl_airfoil_7ro5uj08.dat
+G
+OPER
+VISC 500000
+MACH 0.0
+PACC
+drl_airfoil_7ro5uj08_polar.txt
+
+ASEQ 0 20 1.0
+PACC
+
+QUIT
